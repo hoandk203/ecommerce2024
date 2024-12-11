@@ -1,41 +1,48 @@
 <?php
+
 use Illuminate\Support\Facades\Route;
-// Import controllers
-use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ProductController;
 use App\Http\Controllers\WelcomeController;
+use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\OrderController;
+use App\Http\Controllers\ReportController;
+use App\Http\Controllers\CartController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\CartController;
-// Trang chủ welcome
+
+// Routes công khai - không cần đăng nhập
 Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
-// Đăng ký và đăng nhập người dùng
-Route::get('register', [AuthController::class, 'showRegistrationForm'])->name('register');
-Route::post('register', [AuthController::class, 'register']);
-Route::get('login', [AuthController::class, 'showLoginForm'])->name('login');
-Route::post('login', [AuthController::class, 'login']);
-Route::post('logout', [AuthController::class, 'logout'])->name('logout');
-// Route dành cho admin (sử dụng middleware để kiểm tra quyền)
-Route::middleware(['auth', 'admin'])->group(function () {
-    Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
-    // Route quản lý sản phẩm
-    Route::resource('/admin/products', ProductController::class, [
-        'as' => 'admin' // Đặt tiền tố 'admin' cho tất cả các route của products
-    ]);
-    // Route quản lý danh mục
-    Route::resource('/admin/categories', CategoryController::class, [
-        'as' => 'admin' // Đặt tiền tố 'admin' cho tất cả các route của categories
-    ]);
+Route::get('/products/{product}', [ProductController::class, 'show_normal'])->name('products.show');
+Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+Route::post('/cart/add/{product}', [CartController::class, 'thaiviethoan'])->name('cart.add');
+Route::delete('/cart/remove/{product}', [CartController::class, 'remove'])->name('cart.remove');
+Route::post('/cart/updateAll', [CartController::class, 'updateAll'])->name('cart.updateAll');
+Route::post('/cart/process', [CartController::class, 'process'])->name('cart.process');
+Route::get('/cart/checkout', [CartController::class, 'checkout'])->name('cart.checkout');
+Route::get('/cart/thank-you/{order}', [CartController::class, 'thankYou'])->name('cart.thank-you');
+
+// Routes xác thực
+Route::middleware(['guest'])->group(function () {
+    Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::get('/register', [AuthController::class, 'showRegistrationForm'])->name('register');
+    Route::post('/register', [AuthController::class, 'register']);
 });
-// Route cho người dùng bình thường
+
+// Routes cho user đã đăng nhập
 Route::middleware(['auth'])->group(function () {
-    Route::get('/products', [ProductController::class, 'index'])->name('products.index');
-    Route::get('/products/{product}', [ProductController::class, 'show_normal'])->name('products.show');
-    Route::middleware(['auth'])->group(function () {
-        Route::post('/cart/add/{product}', [CartController::class, 'add'])->name('cart.add');
-        Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
-        Route::delete('/cart/remove/{product}', [CartController::class, 'remove'])->name('cart.remove');
-        Route::patch('/cart/update/{product}', [CartController::class, 'update'])->name('cart.update');
-        Route::patch('/cart/update-all', [CartController::class, 'updateAll'])->name('cart.updateAll');
-    });
+    Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+    Route::get('/my-orders', [OrderController::class, 'myOrders'])->name('my-orders');
+    Route::get('/my-orders/{order}', [OrderController::class, 'show'])->name('my-orders.show');
+});
+
+// Routes cho admin
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
+    Route::resource('categories', CategoryController::class);
+    Route::resource('products', ProductController::class);
+    Route::resource('orders', OrderController::class);
+    Route::get('/reports', [ReportController::class, 'index'])->name('reports.index');
+    Route::get('/orders/{order}/print', [OrderController::class, 'printInvoice'])->name('orders.print-invoice');
+    Route::patch('/orders/{order}/status', [OrderController::class, 'updateStatus'])->name('orders.update-status');
 });

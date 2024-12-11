@@ -14,7 +14,9 @@ class AddRoleToUsersTable extends Migration
     public function up()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('role')->default('user'); // Thêm trường role với giá trị mặc định là 'user'
+            if (!Schema::hasColumn('users', 'role')) {
+                $table->string('role')->default('user');
+            }
         });
     }
 
@@ -26,7 +28,9 @@ class AddRoleToUsersTable extends Migration
     public function down()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('role'); // Xóa trường role nếu migration bị rollback
+            if (Schema::hasColumn('users', 'role')) {
+                $table->dropColumn('role');
+            }
         });
     }
 }

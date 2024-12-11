@@ -21,6 +21,9 @@ class Product extends Model
         'price',
         'quantity',
         'category_id',
+        'image',
+        'manufacturing_date',
+        'expiry_date'
     ];
 
     public function category()

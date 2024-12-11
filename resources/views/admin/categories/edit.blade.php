@@ -17,11 +17,12 @@
     <form action="{{ route('admin.categories.update', $category->id) }}" method="POST">
         @csrf
         @method('PUT')
-        <div class="row">
+        <div class="row gap-2">
             <div class="col-xs-12 col-sm-12 col-md-12">
                 <div class="form-group">
                     <strong>Name:</strong>
-                    <input type="text" name="name" value="{{ $category->name }}" class="form-control" placeholder="Name">
+                    <input type="text" name="name" value="{{ $category->name }}" class="form-control"
+                        placeholder="Name">
                 </div>
             </div>
             <div class="col-xs-12 col-sm-12 col-md-12 text-center">

@@ -20,7 +20,8 @@
         <thead>
             <tr>
                 <th>ID</th>
-                <th>Name</th>
+                <!-- <th>Ảnh</th> -->
+                <th>Tên</th>
                 <th>Price</th>
                 <th>Quantity</th>
                 <th>Category</th>
@@ -31,6 +32,14 @@
             @foreach ($products as $product)
                 <tr>
                     <td>{{ $product->id }}</td>
+                    <!-- <td>
+                            @if($product->image)
+                                <img src="{{ asset("storage/{$product->image}") }}" alt="{{ $product->name }}"
+                                    style="width: 50px; height: 50px; object-fit: cover;">
+                            @else
+                                <span>Không có ảnh</span>
+                            @endif
+                        </td> -->
                     <td>{{ $product->name }}</td>
                     <td>{{ $product->price }}</td>
                     <td>{{ $product->quantity }}</td>

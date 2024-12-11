@@ -6,16 +6,19 @@ use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Illuminate\Foundation\Validation\ValidatesRequests;
 use Illuminate\Routing\Controller as BaseController;
+use Illuminate\Support\Facades\Storage;
 
 class Controller extends BaseController
 {
     use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
 }
+
 namespace App\Http\Controllers;
 
 use App\Models\Product;
 use App\Models\Category;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
@@ -33,16 +36,28 @@ class ProductController extends Controller
 
     public function store(Request $request)
     {
-        $validatedData = $request->validate([
+        $request->validate([
             'name' => 'required',
             'description' => 'required',
             'price' => 'required|numeric',
-            'quantity' => 'required|integer|min:0',
             'category_id' => 'required|exists:categories,id',
+            'quantity' => 'required|integer',
+            'image' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+            'manufacturing_date' => 'nullable|date',
+            'expiry_date' => 'nullable|date|after:manufacturing_date',
         ]);
 
-        Product::create($validatedData);
-        return redirect()->route('admin.products.index')->with('success', 'Product created successfully.');
+        $product = new Product($request->all());
+
+        if ($request->hasFile('image')) {
+            $imagePath = $request->file('image')->store('products', 'public');
+            $product->image = $imagePath;
+        }
+
+        $product->save();
+
+        return redirect()->route('admin.products.index')
+            ->with('success', 'Sản phẩm đã được tạo thành công.');
     }
 
     public function show(Product $product)
@@ -65,22 +80,67 @@ class ProductController extends Controller
 
     public function update(Request $request, Product $product)
     {
-        $validatedData = $request->validate([
+        $request->validate([
             'name' => 'required',
             'description' => 'required',
             'price' => 'required|numeric',
-            'quantity' => 'required|integer|min:0',
             'category_id' => 'required|exists:categories,id',
+            'quantity' => 'required|integer',
+            'image' => 'image|mimes:jpeg,png,jpg,gif|max:2048'
         ]);
 
-        $product->fill($validatedData);
+        $product->fill($request->except('image'));
+
+        if ($request->hasFile('image')) {
+            // Xóa ảnh cũ nếu có
+            if ($product->image) {
+                Storage::disk('public')->delete($product->image);
+            }
+            $imagePath = $request->file('image')->store('products', 'public');
+            $product->image = $imagePath;
+        }
+
         $product->save();
-        return redirect()->route('admin.products.index')->with('success', 'Product updated successfully.');
+
+        return redirect()->route('admin.products.index')
+            ->with('success', 'Sản phẩm đã được cập nhật thành công.');
     }
 
     public function destroy(Product $product)
     {
         $product->delete();
         return redirect()->route('admin.products.index')->with('success', 'Product deleted successfully.');
+    }
+
+    // vừa sửa từ hàm search thành hàm thaiviethoan
+    public function thaiviethoan(Request $request)
+    {
+        $query = $request->input('query');
+        $priceRange = $request->input('price_range');
+        $category = $request->input('category');
+
+        $productsQuery = Product::query();
+
+        if ($query) {
+            $productsQuery->where('name', 'like', "%{$query}%");
+        }
+
+        if ($category) {
+            $productsQuery->where('category_id', $category);
+        }
+
+        if ($priceRange) {
+            list($min, $max) = explode('-', $priceRange);
+            if ($max == '+') {
+                $productsQuery->where('price', '>=', $min);
+            } else {
+                $productsQuery->whereBetween('price', [$min, $max]);
+            }
+        }
+
+        $products = $productsQuery->paginate(12);
+        $categories = Category::all();
+
+        return view('welcome', compact('products', 'categories', 'query', 'priceRange'));
     }
 }
